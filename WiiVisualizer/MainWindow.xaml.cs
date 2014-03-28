@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -22,10 +23,12 @@ namespace WiiVisualizer
     /// </summary>
     public partial class MainWindow : Window
     {
+        #region fields
         private Wii Device;
         private DispatcherTimer timer=new DispatcherTimer();
         private int ledPosition;
         private bool isRumbling;
+        #endregion
 
         public MainWindow()
         {
@@ -51,7 +54,7 @@ namespace WiiVisualizer
             Device.TurnOffLed(prev);
         }
 
-        protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+        protected override void OnClosing(CancelEventArgs e)
         {
             base.OnClosing(e);
             Device.Dispose();

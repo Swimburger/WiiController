@@ -29,10 +29,23 @@ namespace WiiLib
 
         public Wii(int vendorId,int productId)
         {
+            InitializeWii(vendorId, productId);
+            StartReadingReports();
+        }
+
+        private void InitializeWii(int vendorId, int productId)
+        {
             Device = HIDDevice.GetHIDDevice(vendorId, productId);
-            Report += Wii_Report;
             Leds = new bool[4];
-            Device.ReadReport(OnReadReport);
+        }
+
+        #endregion
+
+        #region Enum
+
+        public enum Buttons
+        {
+            A,B,POWER,UP,RIGHT,DOWN,LEFT,MINUS,PLUS,HOME,ONE,TWO
         }
 
         #endregion
@@ -77,42 +90,60 @@ namespace WiiLib
 
         public virtual void OnReportReceived(Wii wii, HIDReport report)
         {
-
-            if (Report != null && report != null)
+           if (Report != null && report != null)
+            {
                 Report(this, report);
+                Console.WriteLine("Report: " + report.Data + " @ID:" + report.ReportID);
+            }
         }
 
         public virtual void OnStatusReportReceived(Wii wii, HIDReport report)
         {
             if (StatusReport != null && report != null)
+            {
                 StatusReport(this, report);
+                Console.WriteLine("StatusReport @ID:" + report.ReportID);
+            }
         }
 
         public virtual void OnMemoryReportReceived(Wii wii, HIDReport report)
         {
 
             if (MemoryReport != null && report != null)
+            {
                 MemoryReport(this, report);
+                Console.WriteLine("MemoryReport @ID:" + report.ReportID);
+            }
         }
 
         public virtual void OnAckReportReceived(Wii wii, HIDReport report)
         {
 
             if (AckReport != null && report != null)
+            {
                 AckReport(this, report);
+                Console.WriteLine("AckReport @ID:" + report.ReportID);
+            }
         }
 
         public virtual void OnCoreButtonsReportReceived(Wii wii, HIDReport report)
         {
             if (CoreButtonsReport != null && report != null)
+            {
                 CoreButtonsReport(this, report);
+                Console.WriteLine("CoreButtonsReport @ID:" + report.ReportID);
+            }
         }
 
         public virtual void OnCoreButtonsAccelReportReceived(Wii wii, HIDReport report)
         {
             if (CoreButtonsAccelReport != null && report != null)
+            {
                 CoreButtonsAccelReport(this, report);
+                Console.WriteLine("CoreButtonsAccelReport @ID:" + report.ReportID);
+            }
         }
+
 
         #endregion
 
@@ -238,15 +269,40 @@ namespace WiiLib
             Device.WriteReport(report);
         }
 
+        private void WriteData(int address,byte[] data)
+        {
+            if(Device!=null&&data!=null)
+            {
+                int index = 0;
+                while(index<data.Length)
+                {
+                    int leftOver = data.Length - index;
+
+                    int count = (leftOver > 16 ? 16 : leftOver);
+
+                    int tempAddress = address + index;
+
+                    HIDReport report = CreateReport();
+                    report.ReportID = 0x16;
+                    report.Data[0] = (byte)((tempAddress & 0x4000000) >> 0x18);
+                    report.Data[1] = (byte)((tempAddress & 0xff0000) >> 0x10);
+                    report.Data[2] = (byte)((tempAddress & 0xff00) >> 0x8);
+                    report.Data[3] = (byte)((tempAddress & 0xff));
+                    report.Data[4] = (byte)count;
+
+                    Buffer.BlockCopy(data, index, report.Data, 5, count);
+                    WriteReport(report);
+                    index += 16;
+                }
+            }else
+                throw new ArgumentNullException("The device or data is null");
+        }
+
+        
+
         #endregion
 
         #region ReadReports
-
-        public void StartReading()
-        {
-            InvokeRequired = true;
-            OnReadReport(Device.CreateReport());
-        }
 
         public bool InvokeRequired { get; set; }
 
@@ -266,6 +322,34 @@ namespace WiiLib
         private void Invoke(ReadReportCallback readReportCallback, HIDReport report)
         {
             readReportCallback.Invoke(report);
+        }
+
+        private void StartReadingReports()
+        {
+            Report += Wii_Report;
+            Device.ReadReport(OnReadReport);
+            InitializeIR();
+        }
+
+        private void InitializeIR()
+        {
+            HIDReport report = CreateReport();
+            report.ReportID = 0x13;
+            report.Data[0] = 0x2;
+            WriteReport(report);
+
+            report = CreateReport();
+            report.ReportID = 0x1A;
+            report.Data[0] = 0x2;
+            WriteReport(report);
+
+            WriteData(0xB00030, new byte[] { 0x02, 0x00, 0x00, 0x71, 0x01, 0x00, 0x90, 0x00, 0x41 });
+
+            WriteData(0xB0001A, new byte[] { 0x40, 0x00 });
+
+            WriteData(0xB00033, new byte[] { 0x22, 0x03 });//onzeker
+
+            WriteData(0xB00030, new byte[] { 0x08 });
         }
 
         #endregion
