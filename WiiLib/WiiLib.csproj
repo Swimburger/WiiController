@@ -40,6 +40,7 @@
     <Reference Include="WII.HID.Lib">
       <HintPath>..\..\..\..\..\School\Semester 4\Datacommunication\projecten\wii\WII.HID.Lib.dll</HintPath>
     </Reference>
+    <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
