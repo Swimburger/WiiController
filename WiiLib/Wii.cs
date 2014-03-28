@@ -15,6 +15,7 @@ namespace WiiLib
 
         private HIDDevice Device { get; set; }
         private byte byte11;
+        private byte[] bytes48;
 
         #endregion
 
@@ -43,7 +44,7 @@ namespace WiiLib
 
         #region Enum
 
-        public enum Buttons
+        public enum Button
         {
             A,B,POWER,UP,RIGHT,DOWN,LEFT,MINUS,PLUS,HOME,ONE,TWO
         }
@@ -58,35 +59,10 @@ namespace WiiLib
         public event EventHandler<HIDReport> AckReport;
         public event EventHandler<HIDReport> CoreButtonsReport;
         public event EventHandler<HIDReport> CoreButtonsAccelReport;
-
-        private void Wii_Report(object sender, HIDReport report)
-        {
-            switch (report.ReportID)
-            {
-                case 0x20:
-                    // Status report
-                    OnStatusReportReceived(this, report);
-                    break;
-                case 0x21:
-                    // Memory en register read report
-                    OnMemoryReportReceived(this, report);
-                    break;
-                case 0x22:
-                    // Acknowledge report
-                    OnAckReportReceived(this, report);
-                    break;
-                case 0x30:
-                    // Core buttons data report
-                    OnCoreButtonsReportReceived(this, report);
-                    break;
-                case 0x31:
-                    // Core buttons en accelerometer data report
-                    OnCoreButtonsAccelReportReceived(this, report);
-                    break;
-                case 0x37:
-                    break;
-            }
-        }
+        public event EventHandler<Button> ButtonDown;
+        public event EventHandler<Button> ButtonUp;
+        public event EventHandler<Button> ButtonPressed;
+        
 
         public virtual void OnReportReceived(Wii wii, HIDReport report)
         {
@@ -94,7 +70,32 @@ namespace WiiLib
             {
                 Report(this, report);
                 Console.WriteLine("Report: " + report.Data + " @ID:" + report.ReportID);
-            }
+                switch (report.ReportID)
+                {
+                    case 0x20:
+                        // Status report
+                        OnStatusReportReceived(this, report);
+                        break;
+                    case 0x21:
+                        // Memory en register read report
+                        OnMemoryReportReceived(this, report);
+                        break;
+                    case 0x22:
+                        // Acknowledge report
+                        OnAckReportReceived(this, report);
+                        break;
+                    case 0x30:
+                        // Core buttons data report
+                        OnCoreButtonsReportReceived(this, report);
+                        break;
+                    case 0x31:
+                        // Core buttons en accelerometer data report
+                        OnCoreButtonsAccelReportReceived(this, report);
+                        break;
+                    case 0x37:
+                        break;
+                } 
+           }
         }
 
         public virtual void OnStatusReportReceived(Wii wii, HIDReport report)
@@ -132,7 +133,16 @@ namespace WiiLib
             {
                 CoreButtonsReport(this, report);
                 Console.WriteLine("CoreButtonsReport @ID:" + report.ReportID);
+                ProcessButtonEvent(bytes48, report.Data);
             }
+        }
+
+        private void ProcessButtonEvent(byte[] prevBytes, byte[] currentBytes)
+        {
+            //first get the indexes of the values that are different
+            //foreach difference check if its an up or down
+            //foreach difference check what button it is
+            //fire the right events
         }
 
         public virtual void OnCoreButtonsAccelReportReceived(Wii wii, HIDReport report)
@@ -144,6 +154,32 @@ namespace WiiLib
             }
         }
 
+        public virtual void OnButtonDown(Wii wii,Button button)
+        {
+            if (ButtonDown != null && button != null)
+            {
+                ButtonDown(this, button);
+                Console.WriteLine("ButtonDown:" + button);
+            }
+        }
+
+        public virtual void OnButtonUp(Wii wii, Button button)
+        {
+            if (ButtonUp != null && button != null)
+            {
+                ButtonUp(this, button);
+                Console.WriteLine("ButtonUp:" + button);
+            }
+        }
+
+        public virtual void OnButtonPressed(Wii wii, Button button)
+        {
+            if (ButtonPressed != null && button != null)
+            {
+                ButtonPressed(this, button);
+                Console.WriteLine("ButtonPressed:" + button);
+            }
+        }
 
         #endregion
 
@@ -326,7 +362,6 @@ namespace WiiLib
 
         private void StartReadingReports()
         {
-            Report += Wii_Report;
             Device.ReadReport(OnReadReport);
             InitializeIR();
         }
