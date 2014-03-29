@@ -14,9 +14,10 @@ namespace WiiLib
         #region Fields
 
         private HIDDevice Device { get; set; }
-        private byte byte11;
-        private byte[] bytes48;
-
+        private byte _byte11;
+        private Dictionary<Button, bool> _buttonsState=new Dictionary<Button,bool>();
+        private Dictionary<Button, byte> _buttonsMasksFirstByte=new Dictionary<Button,byte>();
+        private Dictionary<Button, byte> _buttonsMasksSecondByte= new Dictionary<Button,byte>();
         #endregion
 
         #region Props
@@ -51,7 +52,7 @@ namespace WiiLib
 
         #endregion
 
-        #region events
+        #region Events
 
         public event EventHandler<HIDReport> Report;
         public event EventHandler<HIDReport> StatusReport;
@@ -66,9 +67,11 @@ namespace WiiLib
 
         public virtual void OnReportReceived(Wii wii, HIDReport report)
         {
-           if (Report != null && report != null)
+           if ( report != null)
             {
-                Report(this, report);
+                if(Report != null)
+                    Report(this, report);
+
                 Console.WriteLine("Report: " + report.Data + " @ID:" + report.ReportID);
                 switch (report.ReportID)
                 {
@@ -129,20 +132,62 @@ namespace WiiLib
 
         public virtual void OnCoreButtonsReportReceived(Wii wii, HIDReport report)
         {
-            if (CoreButtonsReport != null && report != null)
+            if ( report != null)
             {
-                CoreButtonsReport(this, report);
+                if(CoreButtonsReport != null)
+                    CoreButtonsReport(this, report);
                 Console.WriteLine("CoreButtonsReport @ID:" + report.ReportID);
-                ProcessButtonEvent(bytes48, report.Data);
+                ProcessButtonEvent( report.Data[0],report.Data[1]);
             }
         }
 
-        private void ProcessButtonEvent(byte[] prevBytes, byte[] currentBytes)
+        private void ProcessButtonEvent( byte currentByte1, byte currentByte2)
         {
-            //first get the indexes of the values that are different
-            //foreach difference check if its an up or down
-            //foreach difference check what button it is
-            //fire the right events
+             foreach(var buttonMask in _buttonsMasksFirstByte)
+             {
+                 Button button = buttonMask.Key;
+                 byte mask = buttonMask.Value;
+                 if(IsMaskOn(mask,currentByte1))
+                 {
+                     if(!_buttonsState[button])//if the button was not down but now is
+                     {
+                         _buttonsState[button] = true;
+                         OnButtonDown(this, button);
+                     }
+                 }
+                 else
+                 {
+                     if(_buttonsState[button])//if the button was down, but now is not
+                     {
+                         _buttonsState[button] = false;
+                         OnButtonUp(this, button);
+                         OnButtonPressed(this, button);
+                     }
+                 }
+             }
+
+             foreach (var buttonMask in _buttonsMasksSecondByte)
+             {
+                 Button button = buttonMask.Key;
+                 byte mask = buttonMask.Value;
+                 if (IsMaskOn(mask, currentByte2))
+                 {
+                     if (!_buttonsState[button])//if the button was not down but now is
+                     {
+                         _buttonsState[button] = true;
+                         OnButtonDown(this, button);
+                     }
+                 }
+                 else
+                 {
+                     if (_buttonsState[button])//if the button was down, but now is not
+                     {
+                         _buttonsState[button] = false;
+                         OnButtonUp(this, button);
+                         OnButtonPressed(this, button);
+                     }
+                 }
+             }
         }
 
         public virtual void OnCoreButtonsAccelReportReceived(Wii wii, HIDReport report)
@@ -191,8 +236,8 @@ namespace WiiLib
         {
             HIDReport report = Device.CreateReport();
             report.ReportID = 0x11;
-            byte11 = (byte)(byte11 | 0x1);
-            report.Data[0] = byte11;
+            _byte11 = (byte)(_byte11 | 0x1);
+            report.Data[0] = _byte11;
             WriteReport(report);
         }
 
@@ -200,8 +245,8 @@ namespace WiiLib
         {
             HIDReport report = Device.CreateReport();
             report.ReportID = 0x11;
-            byte11=(byte)(byte11 & 0xF0);
-            report.Data[0] =byte11 ;
+            _byte11=(byte)(_byte11 & 0xF0);
+            report.Data[0] =_byte11 ;
             WriteReport(report);
         }
 
@@ -216,7 +261,7 @@ namespace WiiLib
 
         public void ToggleRumble()
         {
-            if ((byte11 & 0x1) != 1)
+            if ((_byte11 & 0x1) != 1)
             {
                 StartRumbling();
             }
@@ -256,8 +301,8 @@ namespace WiiLib
                     byt = 0x80;
                     break;
             }
-            byte11 =(byte)( byte11 | byt);
-            report.Data[0] = byte11;
+            _byte11 =(byte)( _byte11 | byt);
+            report.Data[0] = _byte11;
             WriteReport(report);
             Leds[ledPosition] = true;
         }
@@ -283,8 +328,8 @@ namespace WiiLib
                     byt = 0x80;
                     break;
             }
-            byte11 = (byte)(byte11 &(255- byt));
-            report.Data[0] = byte11;
+            _byte11 = (byte)(_byte11 &(255- byt));
+            report.Data[0] = _byte11;
             WriteReport(report);
             Leds[ledPosition] = false;
         }
@@ -350,7 +395,7 @@ namespace WiiLib
             }
             else
             {
-                OnReportReceived(this, report);
+                //OnReportReceived(this, report);
                 Device.ReadReport(OnReadReport);
             }
         }
@@ -362,8 +407,30 @@ namespace WiiLib
 
         private void StartReadingReports()
         {
+            InitializeButtonsState();
             Device.ReadReport(OnReadReport);
             InitializeIR();
+        }
+
+        private void InitializeButtonsState()
+        {
+            foreach(Button button in Enum.GetValues(typeof(Button)))
+            {
+                _buttonsState.Add(button, false);
+            }
+            _buttonsMasksFirstByte.Add(Button.LEFT, 0x01);
+            _buttonsMasksFirstByte.Add(Button.RIGHT, 0x02);
+            _buttonsMasksFirstByte.Add(Button.DOWN, 0x04);
+            _buttonsMasksFirstByte.Add(Button.UP, 0x08);
+            _buttonsMasksFirstByte.Add(Button.PLUS, 0x10);
+
+            _buttonsMasksSecondByte.Add(Button.TWO, 0x01);
+            _buttonsMasksSecondByte.Add(Button.ONE, 0x02);
+            _buttonsMasksSecondByte.Add(Button.B, 0x04);
+            _buttonsMasksSecondByte.Add(Button.A, 0x08);
+            _buttonsMasksSecondByte.Add(Button.MINUS, 0x10);
+            _buttonsMasksSecondByte.Add(Button.HOME, 0x80);
+
         }
 
         private void InitializeIR()
@@ -388,6 +455,11 @@ namespace WiiLib
         }
 
         #endregion
+
+        private bool IsMaskOn(byte mask,byte status)
+        {
+            return mask == (status & mask);
+        }
 
         private bool IsBitOn(byte status, int i)
         {

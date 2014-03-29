@@ -37,7 +37,18 @@ namespace WiiVisualizer
             timer.Interval = TimeSpan.FromMilliseconds(500);
             timer.Tick += timer_Tick;
             timer.Start();
+            Device.ButtonDown += Device_ButtonDown;
+            Device.ButtonUp += Device_ButtonUp;
+        }
 
+        void Device_ButtonUp(object sender, Wii.Button e)
+        {
+            buttonListBox.Items.Remove(e);
+        }
+
+        void Device_ButtonDown(object sender, Wii.Button e)
+        {
+            buttonListBox.Items.Add(e);
         }
 
         void timer_Tick(object sender, EventArgs e)
