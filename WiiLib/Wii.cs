@@ -395,7 +395,7 @@ namespace WiiLib
             }
             else
             {
-                //OnReportReceived(this, report);
+                //OnReportReceived(this, report);//good reports, but not on the right thread
                 Device.ReadReport(OnReadReport);
             }
         }
