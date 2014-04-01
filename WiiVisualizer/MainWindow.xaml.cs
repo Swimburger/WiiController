@@ -24,7 +24,7 @@ namespace WiiVisualizer
     public partial class MainWindow : Window
     {
         #region fields
-        private Wii Device;
+        private WiiController Device;
         private DispatcherTimer timer=new DispatcherTimer();
         private int ledPosition;
         private bool isRumbling;
@@ -33,7 +33,7 @@ namespace WiiVisualizer
         public MainWindow()
         {
             InitializeComponent();
-            Device = new Wii();
+            Device = new WiiController();
             timer.Interval = TimeSpan.FromMilliseconds(500);
             timer.Tick += timer_Tick;
             timer.Start();
@@ -41,12 +41,12 @@ namespace WiiVisualizer
             Device.ButtonUp += Device_ButtonUp;
         }
 
-        void Device_ButtonUp(object sender, Wii.Button e)
+        void Device_ButtonUp(object sender, WiiController.Button e)
         {
             buttonListBox.Items.Remove(e);
         }
 
-        void Device_ButtonDown(object sender, Wii.Button e)
+        void Device_ButtonDown(object sender, WiiController.Button e)
         {
             buttonListBox.Items.Add(e);
         }

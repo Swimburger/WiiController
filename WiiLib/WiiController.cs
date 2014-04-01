@@ -9,7 +9,7 @@ using WII.HID.Lib;
 
 namespace WiiLib
 {
-    public class Wii:IDisposable
+    public class WiiController:IDisposable
     {
         #region Fields
 
@@ -27,9 +27,9 @@ namespace WiiLib
         #endregion
 
         #region Ctors
-        public Wii(): this(0x57E, 0x306){ }
+        public WiiController(): this(0x57E, 0x306){ }
 
-        public Wii(int vendorId,int productId)
+        public WiiController(int vendorId,int productId)
         {
             InitializeWii(vendorId, productId);
             StartReadingReports();
@@ -65,7 +65,7 @@ namespace WiiLib
         public event EventHandler<Button> ButtonPressed;
         
 
-        public virtual void OnReportReceived(Wii wii, HIDReport report)
+        public virtual void OnReportReceived( HIDReport report)
         {
            if ( report != null)
             {
@@ -77,23 +77,23 @@ namespace WiiLib
                 {
                     case 0x20:
                         // Status report
-                        OnStatusReportReceived(this, report);
+                        OnStatusReportReceived( report);
                         break;
                     case 0x21:
                         // Memory en register read report
-                        OnMemoryReportReceived(this, report);
+                        OnMemoryReportReceived( report);
                         break;
                     case 0x22:
                         // Acknowledge report
-                        OnAckReportReceived(this, report);
+                        OnAckReportReceived( report);
                         break;
                     case 0x30:
                         // Core buttons data report
-                        OnCoreButtonsReportReceived(this, report);
+                        OnCoreButtonsReportReceived(report);
                         break;
                     case 0x31:
                         // Core buttons en accelerometer data report
-                        OnCoreButtonsAccelReportReceived(this, report);
+                        OnCoreButtonsAccelReportReceived(report);
                         break;
                     case 0x37:
                         break;
@@ -101,7 +101,7 @@ namespace WiiLib
            }
         }
 
-        public virtual void OnStatusReportReceived(Wii wii, HIDReport report)
+        public virtual void OnStatusReportReceived( HIDReport report)
         {
             if (StatusReport != null && report != null)
             {
@@ -110,7 +110,7 @@ namespace WiiLib
             }
         }
 
-        public virtual void OnMemoryReportReceived(Wii wii, HIDReport report)
+        public virtual void OnMemoryReportReceived( HIDReport report)
         {
 
             if (MemoryReport != null && report != null)
@@ -120,7 +120,7 @@ namespace WiiLib
             }
         }
 
-        public virtual void OnAckReportReceived(Wii wii, HIDReport report)
+        public virtual void OnAckReportReceived( HIDReport report)
         {
 
             if (AckReport != null && report != null)
@@ -130,7 +130,7 @@ namespace WiiLib
             }
         }
 
-        public virtual void OnCoreButtonsReportReceived(Wii wii, HIDReport report)
+        public virtual void OnCoreButtonsReportReceived( HIDReport report)
         {
             if ( report != null)
             {
@@ -141,56 +141,9 @@ namespace WiiLib
             }
         }
 
-        private void ProcessButtonEvent( byte currentByte1, byte currentByte2)
-        {
-             foreach(var buttonMask in _buttonsMasksFirstByte)
-             {
-                 Button button = buttonMask.Key;
-                 byte mask = buttonMask.Value;
-                 if(IsMaskOn(mask,currentByte1))
-                 {
-                     if(!_buttonsState[button])//if the button was not down but now is
-                     {
-                         _buttonsState[button] = true;
-                         OnButtonDown(this, button);
-                     }
-                 }
-                 else
-                 {
-                     if(_buttonsState[button])//if the button was down, but now is not
-                     {
-                         _buttonsState[button] = false;
-                         OnButtonUp(this, button);
-                         OnButtonPressed(this, button);
-                     }
-                 }
-             }
+        
 
-             foreach (var buttonMask in _buttonsMasksSecondByte)
-             {
-                 Button button = buttonMask.Key;
-                 byte mask = buttonMask.Value;
-                 if (IsMaskOn(mask, currentByte2))
-                 {
-                     if (!_buttonsState[button])//if the button was not down but now is
-                     {
-                         _buttonsState[button] = true;
-                         OnButtonDown(this, button);
-                     }
-                 }
-                 else
-                 {
-                     if (_buttonsState[button])//if the button was down, but now is not
-                     {
-                         _buttonsState[button] = false;
-                         OnButtonUp(this, button);
-                         OnButtonPressed(this, button);
-                     }
-                 }
-             }
-        }
-
-        public virtual void OnCoreButtonsAccelReportReceived(Wii wii, HIDReport report)
+        public virtual void OnCoreButtonsAccelReportReceived(HIDReport report)
         {
             if (CoreButtonsAccelReport != null && report != null)
             {
@@ -199,7 +152,7 @@ namespace WiiLib
             }
         }
 
-        public virtual void OnButtonDown(Wii wii,Button button)
+        public virtual void OnButtonDown(Button button)
         {
             if (ButtonDown != null && button != null)
             {
@@ -208,7 +161,7 @@ namespace WiiLib
             }
         }
 
-        public virtual void OnButtonUp(Wii wii, Button button)
+        public virtual void OnButtonUp( Button button)
         {
             if (ButtonUp != null && button != null)
             {
@@ -217,12 +170,61 @@ namespace WiiLib
             }
         }
 
-        public virtual void OnButtonPressed(Wii wii, Button button)
+        public virtual void OnButtonPressed( Button button)
         {
             if (ButtonPressed != null && button != null)
             {
                 ButtonPressed(this, button);
                 Console.WriteLine("ButtonPressed:" + button);
+            }
+        }
+
+        private void ProcessButtonEvent(byte currentByte1, byte currentByte2)
+        {
+            foreach (var buttonMask in _buttonsMasksFirstByte)
+            {
+                Button button = buttonMask.Key;
+                byte mask = buttonMask.Value;
+                if (IsMaskOn(mask, currentByte1))
+                {
+                    if (!_buttonsState[button])//if the button was not down but now is
+                    {
+                        _buttonsState[button] = true;
+                        OnButtonDown( button);
+                    }
+                }
+                else
+                {
+                    if (_buttonsState[button])//if the button was down, but now is not
+                    {
+                        _buttonsState[button] = false;
+                        OnButtonUp( button);
+                        OnButtonPressed( button);
+                    }
+                }
+            }
+
+            foreach (var buttonMask in _buttonsMasksSecondByte)
+            {
+                Button button = buttonMask.Key;
+                byte mask = buttonMask.Value;
+                if (IsMaskOn(mask, currentByte2))
+                {
+                    if (!_buttonsState[button])//if the button was not down but now is
+                    {
+                        _buttonsState[button] = true;
+                        OnButtonDown( button);
+                    }
+                }
+                else
+                {
+                    if (_buttonsState[button])//if the button was down, but now is not
+                    {
+                        _buttonsState[button] = false;
+                        OnButtonUp( button);
+                        OnButtonPressed( button);
+                    }
+                }
             }
         }
 
@@ -253,7 +255,7 @@ namespace WiiLib
         public void Rumble(double milliseconds)
         {
             StartRumbling();
-            Timer timer = new Timer();
+            System.Timers.Timer timer = new Timer();
             timer.Interval = milliseconds;
             timer.Start();
             timer.Elapsed += rumble_Elapsed;
@@ -408,7 +410,7 @@ namespace WiiLib
         private void StartReadingReports()
         {
             InitializeButtonsState();
-            Device.ReadReport(OnReadReport);
+            //Device.ReadReport(OnReadReport);
             InitializeIR();
         }
 
