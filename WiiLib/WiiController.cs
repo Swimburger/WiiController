@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 using System.Windows.Threading;
@@ -31,6 +32,7 @@ namespace WiiLib
 
         public WiiController(int vendorId,int productId)
         {
+            Dispatcher = Dispatcher.FromThread(Thread.CurrentThread);
             InitializeWii(vendorId, productId);
             StartReadingReports();
         }
@@ -255,7 +257,7 @@ namespace WiiLib
         public void Rumble(double milliseconds)
         {
             StartRumbling();
-            System.Timers.Timer timer = new Timer();
+            System.Timers.Timer timer = new System.Timers.Timer();
             timer.Interval = milliseconds;
             timer.Start();
             timer.Elapsed += rumble_Elapsed;
@@ -273,7 +275,7 @@ namespace WiiLib
 
         void rumble_Elapsed(object sender, ElapsedEventArgs e)
         {
-            ((Timer)sender).Dispose();
+            ((System.Timers.Timer)sender).Dispose();
             StopRumbling();
         }
 
@@ -387,17 +389,17 @@ namespace WiiLib
 
         #region ReadReports
 
-        public bool InvokeRequired { get; set; }
+        Dispatcher Dispatcher { get; set; }
 
         private void OnReadReport(HIDReport report)
         {
-            if (this.InvokeRequired)
+            if (Thread.CurrentThread!=Dispatcher.Thread)
             {
-                this.Invoke(new ReadReportCallback(OnReadReport), report);
+                Dispatcher.Invoke(new ReadReportCallback(OnReadReport), report);
             }
             else
             {
-                //OnReportReceived(this, report);//good reports, but not on the right thread
+                OnReportReceived(report);//good reports, but not on the right thread
                 Device.ReadReport(OnReadReport);
             }
         }
@@ -410,7 +412,7 @@ namespace WiiLib
         private void StartReadingReports()
         {
             InitializeButtonsState();
-            //Device.ReadReport(OnReadReport);
+            Device.ReadReport(OnReadReport);
             InitializeIR();
         }
 
