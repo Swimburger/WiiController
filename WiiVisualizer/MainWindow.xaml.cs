@@ -33,12 +33,51 @@ namespace WiiVisualizer
         public MainWindow()
         {
             InitializeComponent();
-            Device = new WiiController();
+            Device = WiiController.GetOldWiiRemote();
             timer.Interval = TimeSpan.FromMilliseconds(500);
             timer.Tick += timer_Tick;
             timer.Start();
             Device.ButtonDown += Device_ButtonDown;
             Device.ButtonUp += Device_ButtonUp;
+            Device.InfraredChanged += Device_InfraredChanged;
+
+            cnvIR.Children.Add(ellipse);
+            ellipse.Height = 50;
+            ellipse.Width = 50;
+            ellipse.Fill = new SolidColorBrush(Colors.Black);
+            cnvIR.Children.Add(ellipse2);
+            ellipse2.Height = 50;
+            ellipse2.Width = 50;
+            ellipse2.Fill = new SolidColorBrush(Colors.Black);
+            cnvIR.Children.Add(ellipse3);
+            ellipse3.Height = 50;
+            ellipse3.Width = 50;
+            ellipse3.Fill = new SolidColorBrush(Colors.Black);
+            cnvIR.Children.Add(ellipse4);
+            ellipse4.Height = 50;
+            ellipse4.Width = 50;
+            ellipse4.Fill = new SolidColorBrush(Colors.Black);
+        }
+        Ellipse ellipse = new Ellipse();
+        Ellipse ellipse2 = new Ellipse();
+        Ellipse ellipse3 = new Ellipse();
+        Ellipse ellipse4 = new Ellipse();
+
+        void Device_InfraredChanged(object sender, List<Point> e)
+        {
+            Point point = e[0];
+            ellipse.SetValue(Canvas.LeftProperty, point.X*cnvIR.ActualWidth);
+            ellipse.SetValue(Canvas.TopProperty, point.Y * cnvIR.ActualHeight);
+            point = e[1];
+            ellipse2.SetValue(Canvas.LeftProperty, point.X * cnvIR.ActualWidth);
+            ellipse2.SetValue(Canvas.TopProperty, point.Y * cnvIR.ActualHeight);
+            point = e[2];
+            ellipse3.SetValue(Canvas.LeftProperty, point.X * cnvIR.ActualWidth);
+            ellipse3.SetValue(Canvas.TopProperty, point.Y * cnvIR.ActualHeight);
+            point = e[3];
+            ellipse4.SetValue(Canvas.LeftProperty, point.X * cnvIR.ActualWidth);
+            ellipse4.SetValue(Canvas.TopProperty, point.Y * cnvIR.ActualHeight);
+
         }
 
         void Device_ButtonUp(object sender, WiiController.Button e)

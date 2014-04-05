@@ -5,6 +5,7 @@
     <Grid>
         <Button x:Name="Rumble" Click="Rumble_Click" Content="Rumble" HorizontalAlignment="Left" Margin="223,132,0,0" VerticalAlignment="Top" Width="75"/>
         <ListBox x:Name="buttonListBox" HorizontalAlignment="Left" Height="274" Margin="315,26,0,0" VerticalAlignment="Top" Width="193"/>
+        <Canvas x:Name="cnvIR" Margin="10,10,10.4,9.8"/>
 
 
     </Grid>

@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
+using System.Windows;
 using System.Windows.Threading;
 using WII.HID.Lib;
 
@@ -19,22 +20,57 @@ namespace WiiLib
         private Dictionary<Button, bool> _buttonsState=new Dictionary<Button,bool>();
         private Dictionary<Button, byte> _buttonsMasksFirstByte=new Dictionary<Button,byte>();
         private Dictionary<Button, byte> _buttonsMasksSecondByte= new Dictionary<Button,byte>();
+        Dispatcher _dispatcher;
+
+        private bool _isBatteryNearlyEmpty;
         #endregion
 
         #region Props
         public bool[] Leds { get; private set; }
+        public virtual bool IsBatteryNearlyEmpty
+        {
+            get
+            {
+                return _isBatteryNearlyEmpty;
+            }
+            set
+            {
+                _isBatteryNearlyEmpty = value;
+            }
+        }
 
+        public virtual bool IsExtensionControllerConnected { get;private set; }
+
+        public virtual bool IsSpeakerEnabled { get;private set; }
+
+        public virtual bool IsIRCamEnabled { get;private set; }
+
+        public virtual float BatteryLevel { get;private set; }
+
+        public virtual Acceleration LastAcceleration { get; set; }
+
+        public virtual List<Point> InfraredPoints { get; set; }
 
         #endregion
 
         #region Ctors
-        public WiiController(): this(0x57E, 0x306){ }
 
         public WiiController(int vendorId,int productId)
         {
-            Dispatcher = Dispatcher.FromThread(Thread.CurrentThread);
+            LastAcceleration = new Acceleration(0, 0, 0);
+            _dispatcher = Dispatcher.FromThread(Thread.CurrentThread);
             InitializeWii(vendorId, productId);
             StartReadingReports();
+        }
+
+        public static WiiController GetOldWiiRemote()
+        {
+            return new WiiController(0x57E, 0x306);
+        }
+
+        public static WiiController GetNewWiiRemote()
+        {
+            return new WiiController(0x57E, 0x330);
         }
 
         private void InitializeWii(int vendorId, int productId)
@@ -62,9 +98,12 @@ namespace WiiLib
         public event EventHandler<HIDReport> AckReport;
         public event EventHandler<HIDReport> CoreButtonsReport;
         public event EventHandler<HIDReport> CoreButtonsAccelReport;
+        public event EventHandler<HIDReport> CoreButtonsAccelIRExtensionReport;
         public event EventHandler<Button> ButtonDown;
         public event EventHandler<Button> ButtonUp;
         public event EventHandler<Button> ButtonPressed;
+        public event EventHandler<Acceleration> Accelerated;
+        public event EventHandler<List<Point>> InfraredChanged;
         
 
         public virtual void OnReportReceived( HIDReport report)
@@ -98,6 +137,7 @@ namespace WiiLib
                         OnCoreButtonsAccelReportReceived(report);
                         break;
                     case 0x37:
+                        OnCoreButtonsAccelIRExtensionReportReceived(report);
                         break;
                 } 
            }
@@ -105,12 +145,16 @@ namespace WiiLib
 
         public virtual void OnStatusReportReceived( HIDReport report)
         {
-            if (StatusReport != null && report != null)
+            if (report != null)
             {
-                StatusReport(this, report);
-                Console.WriteLine("StatusReport @ID:" + report.ReportID);
+                if (StatusReport != null)
+                {
+                    StatusReport(this, report);
+                    Console.WriteLine("StatusReport @ID:" + report.ReportID);
+                }
+                ProcessStatusReport(report.Data);
             }
-        }
+        }        
 
         public virtual void OnMemoryReportReceived( HIDReport report)
         {
@@ -139,22 +183,92 @@ namespace WiiLib
                 if(CoreButtonsReport != null)
                     CoreButtonsReport(this, report);
                 Console.WriteLine("CoreButtonsReport @ID:" + report.ReportID);
-                ProcessButtonEvent( report.Data[0],report.Data[1]);
+                ProcessButtonBytes( report.Data[0],report.Data[1]);
+            }
+        }
+
+        public virtual void OnCoreButtonsAccelReportReceived(HIDReport report)
+        {
+            if (report != null)
+            {
+                if (CoreButtonsAccelReport != null)
+                {
+                    CoreButtonsAccelReport(this, report);
+                    Console.WriteLine("CoreButtonsAccelReport @ID:" + report.ReportID);
+                }
+                ProcessButtonBytes(report.Data[0], report.Data[1]);
+                ProcessAccelerometer(report.Data);
             }
         }
 
         
 
-        public virtual void OnCoreButtonsAccelReportReceived(HIDReport report)
+        public virtual void OnCoreButtonsAccelIRExtensionReportReceived(HIDReport report)
         {
-            if (CoreButtonsAccelReport != null && report != null)
+            if (report != null)
             {
-                CoreButtonsAccelReport(this, report);
-                Console.WriteLine("CoreButtonsAccelReport @ID:" + report.ReportID);
+                if (CoreButtonsAccelIRExtensionReport != null)
+                {
+                    CoreButtonsAccelIRExtensionReport(this, report);
+                    Console.WriteLine("CoreButtonsAccelIRReport @ID:" + report.ReportID);
+                }
+                ProcessButtonBytes(report.Data[0], report.Data[1]);
+                ProcessAccelerometer(report.Data);
+                ProcessIR(report.Data);
+                //extensions need to be implemented by extending class
             }
         }
 
-        public virtual void OnButtonDown(Button button)
+        private void ProcessIR(byte[] data)
+        {
+            //throw new NotImplementedException();
+            ProcessBasicIR(data.Skip(2).Take(5).ToArray(),0);
+            ProcessBasicIR(data.Skip(7).Take(5).ToArray(),1);
+        }
+
+        private void ProcessBasicIR(byte[] data,int part)
+        {
+            if(data.Count()!=5)
+                throw new ArgumentException("data length should be 5");
+            double x1 = data[0];
+            double y1 = data[1];
+            double x2 = data[3];
+            double y2 = data[4];
+
+            byte b2 = data[2];
+            y1 += (b2&0xc0)<<2;
+            x1 += (b2 & 0x30)<<4;
+            y2 += (b2 & 0x0c) << 6;
+            x2 += (b2 & 0x03) << 8;
+
+            bool isPoint1 = (x1 != 1023 || y1 != 1023);
+            bool isPoint2 = (x2 != 1023 || y2 != 1023);
+
+            x1 = x1 / 1023d;
+            x2 = x2 / 1023d;
+
+            //y1 = y1 / 767d;
+            //y2 = y2 / 767d;
+            y1 = y1 / 1023d;
+            y2 = y2 / 1023d;
+
+            Console.WriteLine("x1: " + x1 + ", y1: " + y1 + ", x2: " + x2 + ", y2: " + y2);
+            
+            if (isPoint1)
+            {
+                InfraredPoints[0 + (part * 2)] = new Point(x1,y1);
+            }
+            if (isPoint2)
+            {
+                InfraredPoints[1 + (part * 2)] = new Point(x2, y2);
+            }
+            if(isPoint1||isPoint2)
+                OnInfraredChanged(InfraredPoints);
+        }
+
+        
+
+        protected virtual void OnButtonDown(Button button)
         {
             if (ButtonDown != null && button != null)
             {
@@ -163,7 +277,7 @@ namespace WiiLib
             }
         }
 
-        public virtual void OnButtonUp( Button button)
+        protected virtual void OnButtonUp( Button button)
         {
             if (ButtonUp != null && button != null)
             {
@@ -172,7 +286,7 @@ namespace WiiLib
             }
         }
 
-        public virtual void OnButtonPressed( Button button)
+        protected virtual void OnButtonPressed( Button button)
         {
             if (ButtonPressed != null && button != null)
             {
@@ -181,7 +295,15 @@ namespace WiiLib
             }
         }
 
-        private void ProcessButtonEvent(byte currentByte1, byte currentByte2)
+        protected virtual void OnInfraredChanged(List<Point> list)
+        {
+            if (InfraredChanged != null)
+            {
+                InfraredChanged(this,list);
+            }
+        }
+
+        private void ProcessButtonBytes(byte currentByte1, byte currentByte2)
         {
             foreach (var buttonMask in _buttonsMasksFirstByte)
             {
@@ -229,6 +351,37 @@ namespace WiiLib
                 }
             }
         }
+
+        private void ProcessStatusReport(Byte[] data)
+        {
+            byte lf = data[2];
+            IsBatteryNearlyEmpty = IsMaskOn(0x01, lf);
+            IsExtensionControllerConnected = IsMaskOn(0x02, lf);
+            IsSpeakerEnabled = IsMaskOn(0x04, lf);
+            IsIRCamEnabled = IsMaskOn(0x08, lf);
+            Leds[0] = IsMaskOn(0x10, lf);
+            Leds[1] = IsMaskOn(0x20, lf);
+            Leds[2] = IsMaskOn(0x40, lf);
+            Leds[3] = IsMaskOn(0x80, lf);
+
+
+            //according to test 192
+            BatteryLevel = (float)(data[5] / 192f); ;
+        }
+
+        private void ProcessAccelerometer(byte[] data)
+        {
+            byte lsbx = (byte)(data[0] & 0x60);
+            byte lsbz = (byte)(data[1] & 0x40);
+            byte lsby = (byte)(data[1] & 0x20);
+            LastAcceleration.X = (0x200 - ((data[2]) << 2) | (lsbx >> 5)) / 10.23f;
+            LastAcceleration.Y = (0x200 - ((data[3]) << 2) | (lsby >> 4)) / 10.23f;
+            LastAcceleration.Z = (0x200 - ((data[4]) << 2) | (lsbz >> 5)) / 10.23f;
+            if (Accelerated != null)
+                Accelerated(this, LastAcceleration);
+        }
+
+        
 
         #endregion
 
@@ -383,19 +536,15 @@ namespace WiiLib
                 throw new ArgumentNullException("The device or data is null");
         }
 
-        
-
         #endregion
 
         #region ReadReports
 
-        Dispatcher Dispatcher { get; set; }
-
         private void OnReadReport(HIDReport report)
         {
-            if (Thread.CurrentThread!=Dispatcher.Thread)
+            if (Thread.CurrentThread!=_dispatcher.Thread)
             {
-                Dispatcher.Invoke(new ReadReportCallback(OnReadReport), report);
+                _dispatcher.Invoke(new ReadReportCallback(OnReadReport), report);
             }
             else
             {
@@ -404,16 +553,21 @@ namespace WiiLib
             }
         }
 
-        private void Invoke(ReadReportCallback readReportCallback, HIDReport report)
-        {
-            readReportCallback.Invoke(report);
-        }
-
         private void StartReadingReports()
         {
             InitializeButtonsState();
             Device.ReadReport(OnReadReport);
             InitializeIR();
+            RequestStatus();
+            SetDataReportingMode(0x37);
+            
+        }
+
+        private void RequestStatus()
+        {
+            var report = CreateReport();
+            report.ReportID=0x15;
+            WriteReport(report);
         }
 
         private void InitializeButtonsState()
@@ -439,23 +593,64 @@ namespace WiiLib
 
         private void InitializeIR()
         {
+            InfraredPoints = new List<Point>();
+            InfraredPoints.Add(new Point());
+            InfraredPoints.Add(new Point());
+            InfraredPoints.Add(new Point());
+            InfraredPoints.Add(new Point());
+
             HIDReport report = CreateReport();
             report.ReportID = 0x13;
-            report.Data[0] = 0x2;
+            report.Data[0] = 0x4;
             WriteReport(report);
 
             report = CreateReport();
             report.ReportID = 0x1A;
-            report.Data[0] = 0x2;
+            report.Data[0] = 0x4;
             WriteReport(report);
 
-            WriteData(0xB00030, new byte[] { 0x02, 0x00, 0x00, 0x71, 0x01, 0x00, 0x90, 0x00, 0x41 });
+            WriteData(0xB00030, new byte[] { 0x8 });
 
-            WriteData(0xB0001A, new byte[] { 0x40, 0x00 });
+            WriteData(0xB00000, new byte[] { 0x02, 0, 0, 0x71, 0x01, 0, 0x90, 0, 0x41 });
 
-            WriteData(0xB00033, new byte[] { 0x22, 0x03 });//onzeker
+            WriteData(0xB0001A, new byte[] { 0x40, 0 });
+
+            WriteData(0xB00033, new byte[] { 0x01});
 
             WriteData(0xB00030, new byte[] { 0x08 });
+
+            #region WiiIRInitalization
+
+            /*HIDReport report = CreateReport();
+            report.ReportID = 0x13;
+            report.Data[0] = 0x06;
+            WriteReport(report);
+
+            report = CreateReport();
+            report.ReportID = 0x1a;
+            report.Data[0] = 0x06;
+            WriteReport(report);
+
+            WriteData(0xB00030, new byte[] { 0x01 });
+
+            WriteData(0xB00000, new byte[] { 0x02, 0, 0, 0x71, 0x01, 0, 0x90, 0, 0x41 });
+
+            WriteData(0xB0001A, new byte[] { 0x40, 0 });
+
+            WriteData(0xB00033, new byte[] { 0x01 });
+
+            WriteData(0xB00030, new byte[] { 0x08 });*/
+
+            #endregion
+
+        }
+
+        private void SetDataReportingMode(byte mode)
+        {
+            var report = CreateReport();
+            report.ReportID = 0x12;
+            report.Data[1] = mode;
+            WriteReport(report);
         }
 
         #endregion
@@ -474,6 +669,7 @@ namespace WiiLib
         public void Dispose()
         {
             Device.Dispose();
-        }        
+        }
+       
     }
 }
