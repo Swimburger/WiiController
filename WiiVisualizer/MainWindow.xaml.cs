@@ -65,7 +65,10 @@ namespace WiiVisualizer
 
         void Device_InfraredChanged(object sender, List<Point> e)
         {
-            Point point = e[0];
+            Point point = Device.GetAveragePoint();
+            ellipse.SetValue(Canvas.LeftProperty, point.X * cnvIR.ActualWidth);
+            ellipse.SetValue(Canvas.TopProperty, point.Y * cnvIR.ActualHeight);
+            /*Point point = e[0];
             ellipse.SetValue(Canvas.LeftProperty, point.X*cnvIR.ActualWidth);
             ellipse.SetValue(Canvas.TopProperty, point.Y * cnvIR.ActualHeight);
             point = e[1];
@@ -76,7 +79,7 @@ namespace WiiVisualizer
             ellipse3.SetValue(Canvas.TopProperty, point.Y * cnvIR.ActualHeight);
             point = e[3];
             ellipse4.SetValue(Canvas.LeftProperty, point.X * cnvIR.ActualWidth);
-            ellipse4.SetValue(Canvas.TopProperty, point.Y * cnvIR.ActualHeight);
+            ellipse4.SetValue(Canvas.TopProperty, point.Y * cnvIR.ActualHeight);*/
 
         }
 

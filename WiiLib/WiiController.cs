@@ -20,7 +20,7 @@ namespace WiiLib
         private Dictionary<Button, bool> _buttonsState=new Dictionary<Button,bool>();
         private Dictionary<Button, byte> _buttonsMasksFirstByte=new Dictionary<Button,byte>();
         private Dictionary<Button, byte> _buttonsMasksSecondByte= new Dictionary<Button,byte>();
-        Dispatcher _dispatcher;
+        Dispatcher _dispatcher=Dispatcher.CurrentDispatcher;
 
         private bool _isBatteryNearlyEmpty;
         #endregion
@@ -58,7 +58,7 @@ namespace WiiLib
         public WiiController(int vendorId,int productId)
         {
             LastAcceleration = new Acceleration(0, 0, 0);
-            _dispatcher = Dispatcher.FromThread(Thread.CurrentThread);
+            //_dispatcher = Dispatcher.FromThread(Thread.CurrentThread);
             InitializeWii(vendorId, productId);
             StartReadingReports();
         }
@@ -221,11 +221,15 @@ namespace WiiLib
 
         private void ProcessIR(byte[] data)
         {
-            //throw new NotImplementedException();
-            ProcessBasicIR(data.Skip(2).Take(5).ToArray(),0);
-            ProcessBasicIR(data.Skip(7).Take(5).ToArray(),1);
+            ProcessBasicIR(data.Skip(5).Take(5).ToArray(),0);
+            ProcessBasicIR(data.Skip(10).Take(5).ToArray(),1);
         }
 
+        /// <summary>
+        /// Method to process the infrared camera
+        /// </summary>
+        /// <param name="data">5 bytes from 2 IR points</param>
+        /// <param name="part">if set 0, point 1 and 2. If set 1, point 3 and 4</param>
         private void ProcessBasicIR(byte[] data,int part)
         {
             if(data.Count()!=5)
@@ -243,16 +247,29 @@ namespace WiiLib
 
             bool isPoint1 = (x1 != 1023 || y1 != 1023);
             bool isPoint2 = (x2 != 1023 || y2 != 1023);
+            
+            //Console.WriteLine("x1: " + x1 + ", y1: " + y1 + ", x2: " + x2 + ", y2: " + y2);
+            if(!isPoint1)
+            {
+                InfraredPoints[0 + (part * 2)] = new Point(-1, -1);
+            }
+            if (!isPoint2)
+            {
+                InfraredPoints[1 + (part * 2)] = new Point(-1, -1);
+            }
+
+            if (!isPoint1 && !isPoint2) return;
+            
 
             x1 = x1 / 1023d;
             x2 = x2 / 1023d;
 
-            //y1 = y1 / 767d;
-            //y2 = y2 / 767d;
-            y1 = y1 / 1023d;
-            y2 = y2 / 1023d;
+            y1 = y1 / 767d;
+            y2 = y2 / 767d;
+            //y1 = y1 / 1023d;
+            //y2 = y2 / 1023d;
 
-            Console.WriteLine("x1: " + x1 + ", y1: " + y1 + ", x2: " + x2 + ", y2: " + y2);
+            
             
             if (isPoint1)
             {
@@ -262,7 +279,6 @@ namespace WiiLib
             {
                 InfraredPoints[1 + (part * 2)] = new Point(x2, y2);
             }
-            if(isPoint1||isPoint2)
                 OnInfraredChanged(InfraredPoints);
         }
 
@@ -594,10 +610,10 @@ namespace WiiLib
         private void InitializeIR()
         {
             InfraredPoints = new List<Point>();
-            InfraredPoints.Add(new Point());
-            InfraredPoints.Add(new Point());
-            InfraredPoints.Add(new Point());
-            InfraredPoints.Add(new Point());
+            InfraredPoints.Add(new Point(-1,-1));
+            InfraredPoints.Add(new Point(-1, -1));
+            InfraredPoints.Add(new Point(-1, -1));
+            InfraredPoints.Add(new Point(-1, -1));
 
             HIDReport report = CreateReport();
             report.ReportID = 0x13;
@@ -654,6 +670,17 @@ namespace WiiLib
         }
 
         #endregion
+
+        public Point GetAveragePoint()
+        {
+            return GetAveragePoint(InfraredPoints);
+        }
+
+        private static Point GetAveragePoint(List<Point> points)
+        {
+            points=points.Where(p => p.Y != -1 && p.X != -1).ToList();
+            return new Point(points.Average(p => p.X), points.Average(p => p.Y));
+        }
 
         private bool IsMaskOn(byte mask,byte status)
         {

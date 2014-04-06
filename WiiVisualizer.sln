@@ -1,11 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.30110.0
+VisualStudioVersion = 12.0.30324.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WiiVisualizer", "WiiVisualizer\WiiVisualizer.csproj", "{BA47DB69-9DEB-404F-A879-02902526DB38}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WiiLib", "WiiLib\WiiLib.csproj", "{13AAE6E5-168A-4EDE-BD50-DADF631BC0B9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WiiMouseKeyboard", "WiiMouse\WiiMouseKeyboard.csproj", "{F4269040-D8EB-4D9D-88E0-780B50F3FE13}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WiiService", "WiiService\WiiService.csproj", "{228DD1CF-DE11-4BAE-ACF3-B114DF48FFB4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +25,14 @@ Global
 		{13AAE6E5-168A-4EDE-BD50-DADF631BC0B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{13AAE6E5-168A-4EDE-BD50-DADF631BC0B9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{13AAE6E5-168A-4EDE-BD50-DADF631BC0B9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F4269040-D8EB-4D9D-88E0-780B50F3FE13}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F4269040-D8EB-4D9D-88E0-780B50F3FE13}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F4269040-D8EB-4D9D-88E0-780B50F3FE13}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F4269040-D8EB-4D9D-88E0-780B50F3FE13}.Release|Any CPU.Build.0 = Release|Any CPU
+		{228DD1CF-DE11-4BAE-ACF3-B114DF48FFB4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{228DD1CF-DE11-4BAE-ACF3-B114DF48FFB4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{228DD1CF-DE11-4BAE-ACF3-B114DF48FFB4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{228DD1CF-DE11-4BAE-ACF3-B114DF48FFB4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
