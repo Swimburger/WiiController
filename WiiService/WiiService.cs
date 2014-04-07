@@ -23,8 +23,18 @@ namespace WiiService
 
         protected override void OnStart(string[] args)
         {
+            #if DEBUG
+                        System.Diagnostics.Debugger.Launch();
+            #endif
+                        SetCursorPos(180, 180);
             controller = WiiController.GetOldWiiRemote();
             controller.InfraredChanged += controller_InfraredChanged;
+            controller.ButtonPressed += controller_ButtonPressed;
+        }
+
+        void controller_ButtonPressed(object sender, WiiController.Button e)
+        {
+            throw new NotImplementedException();
         }
 
         void controller_InfraredChanged(object sender, List<System.Windows.Point> e)
@@ -35,6 +45,7 @@ namespace WiiService
 
         protected override void OnStop()
         {
+            controller.Dispose();
         }
 
         [DllImport("User32.Dll")]

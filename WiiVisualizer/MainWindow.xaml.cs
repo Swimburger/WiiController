@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -63,9 +64,13 @@ namespace WiiVisualizer
         Ellipse ellipse3 = new Ellipse();
         Ellipse ellipse4 = new Ellipse();
 
+
+
         void Device_InfraredChanged(object sender, List<Point> e)
         {
             Point point = Device.GetAveragePoint();
+            SetCursorPos((int)(1920-(1920 * point.X)), (int)(1200 * point.Y));
+
             ellipse.SetValue(Canvas.LeftProperty, point.X * cnvIR.ActualWidth);
             ellipse.SetValue(Canvas.TopProperty, point.Y * cnvIR.ActualHeight);
             /*Point point = e[0];
@@ -123,5 +128,8 @@ namespace WiiVisualizer
             Device.Rumble(800);
             //Device.ToggleRumble();
         }
+
+        [DllImport("User32.Dll")]
+        public static extern long SetCursorPos(int x, int y);
     }
 }
