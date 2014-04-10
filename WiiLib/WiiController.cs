@@ -85,7 +85,7 @@ namespace WiiLib
 
         public enum Button
         {
-            A,B,POWER,UP,RIGHT,DOWN,LEFT,MINUS,PLUS,HOME,ONE,TWO
+            A,B,UP,RIGHT,DOWN,LEFT,MINUS,PLUS,HOME,ONE,TWO
         }
 
         #endregion

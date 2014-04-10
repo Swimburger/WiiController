@@ -69,7 +69,7 @@ namespace WiiVisualizer
         void Device_InfraredChanged(object sender, List<Point> e)
         {
             Point point = Device.GetAveragePoint();
-            SetCursorPos((int)(1920-(1920 * point.X)), (int)(1200 * point.Y));
+            //SetCursorPos((int)(1920-(1920 * point.X)), (int)(1200 * point.Y));
 
             ellipse.SetValue(Canvas.LeftProperty, point.X * cnvIR.ActualWidth);
             ellipse.SetValue(Canvas.TopProperty, point.Y * cnvIR.ActualHeight);
@@ -129,7 +129,7 @@ namespace WiiVisualizer
             //Device.ToggleRumble();
         }
 
-        [DllImport("User32.Dll")]
-        public static extern long SetCursorPos(int x, int y);
+        //[DllImport("User32.Dll")]
+        //public static extern long SetCursorPos(int x, int y);
     }
 }
