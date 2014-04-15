@@ -26,7 +26,7 @@ namespace WiiLib
         #endregion
 
         #region Props
-        public bool[] Leds { get; private set; }
+        public virtual bool[] Leds { get; protected set; }
         public virtual bool IsBatteryNearlyEmpty
         {
             get
@@ -39,13 +39,13 @@ namespace WiiLib
             }
         }
 
-        public virtual bool IsExtensionControllerConnected { get;private set; }
+        public virtual bool IsExtensionControllerConnected { get; protected set; }
 
-        public virtual bool IsSpeakerEnabled { get;private set; }
+        public virtual bool IsSpeakerEnabled { get; protected set; }
 
-        public virtual bool IsIRCamEnabled { get;private set; }
+        public virtual bool IsIRCamEnabled { get; protected set; }
 
-        public virtual float BatteryLevel { get;private set; }
+        public virtual float BatteryLevel { get;protected set; }
 
         public virtual Acceleration LastAcceleration { get; set; }
 
@@ -81,15 +81,6 @@ namespace WiiLib
 
         #endregion
 
-        #region Enum
-
-        public enum Button
-        {
-            A,B,UP,RIGHT,DOWN,LEFT,MINUS,PLUS,HOME,ONE,TWO
-        }
-
-        #endregion
-
         #region Events
 
         public event EventHandler<HIDReport> Report;
@@ -104,6 +95,7 @@ namespace WiiLib
         public event EventHandler<Button> ButtonPressed;
         public event EventHandler<Acceleration> Accelerated;
         public event EventHandler<List<Point>> InfraredChanged;
+        public event EventHandler<bool[]> LedChanged;
         
 
         public virtual void OnReportReceived( HIDReport report)
@@ -319,6 +311,12 @@ namespace WiiLib
             }
         }
 
+        protected virtual void OnLedChanged(bool[] leds)
+        {
+            if (LedChanged != null)
+                LedChanged(this, leds);
+        }
+
         private void ProcessButtonBytes(byte currentByte1, byte currentByte2)
         {
             foreach (var buttonMask in _buttonsMasksFirstByte)
@@ -375,11 +373,10 @@ namespace WiiLib
             IsExtensionControllerConnected = IsMaskOn(0x02, lf);
             IsSpeakerEnabled = IsMaskOn(0x04, lf);
             IsIRCamEnabled = IsMaskOn(0x08, lf);
-            Leds[0] = IsMaskOn(0x10, lf);
-            Leds[1] = IsMaskOn(0x20, lf);
-            Leds[2] = IsMaskOn(0x40, lf);
-            Leds[3] = IsMaskOn(0x80, lf);
-
+            ChangeLed(0,IsMaskOn(0x10, lf));
+            ChangeLed(1,IsMaskOn(0x20, lf));
+            ChangeLed(2,IsMaskOn(0x40, lf));
+            ChangeLed(3,IsMaskOn(0x80, lf));
 
             //according to test 192
             BatteryLevel = (float)(data[5] / 192f); ;
@@ -477,7 +474,7 @@ namespace WiiLib
             _byte11 =(byte)( _byte11 | byt);
             report.Data[0] = _byte11;
             WriteReport(report);
-            Leds[ledPosition] = true;
+            ChangeLed(ledPosition, true);
         }
         public void TurnOffLed(int ledPosition)
         {
@@ -504,7 +501,14 @@ namespace WiiLib
             _byte11 = (byte)(_byte11 &(255- byt));
             report.Data[0] = _byte11;
             WriteReport(report);
-            Leds[ledPosition] = false;
+            ChangeLed(ledPosition, false);
+        }
+
+        private void ChangeLed(int position,Boolean isOn)
+        {
+            if (Leds[position] == isOn) return;
+            Leds[position] = isOn;
+            OnLedChanged(Leds);
         }
 
         #endregion
@@ -698,5 +702,24 @@ namespace WiiLib
             Device.Dispose();
         }
        
+    }
+
+    #region Enum
+
+    public enum Button
+    {
+        A, B, UP, RIGHT, DOWN, LEFT, MINUS, PLUS, HOME, ONE, TWO
+    }
+
+    #endregion
+
+    public class ButtonState
+    {
+        public Button Button { get; set; }
+        public bool IsDown { get; set; }
+        public ButtonState(Button button)
+        {
+
+        }
     }
 }

@@ -34,63 +34,63 @@ namespace WiiMouseKeyboard
             controller.ButtonPressed += controller_ButtonPressed;
         }
 
-        void controller_ButtonPressed(object sender, WiiController.Button e)
+        void controller_ButtonPressed(object sender, Button e)
         {
             SendWiiKeyboardKey(e);
         }
 
-        private void SendWiiKeyboardKey(WiiController.Button e)
+        private void SendWiiKeyboardKey(Button e)
         {
             switch (e)
             {
-                case WiiController.Button.DOWN:
+                case Button.DOWN:
                     WinAPI.ManagedSendKeys("{DOWN}");
                     break;
-                case WiiController.Button.UP:
+                case Button.UP:
                     WinAPI.ManagedSendKeys("{UP}");
                     break;
-                case WiiController.Button.LEFT:
+                case Button.LEFT:
                     WinAPI.ManagedSendKeys("{LEFT}");
                     break;
-                case WiiController.Button.RIGHT:
+                case Button.RIGHT:
                     WinAPI.ManagedSendKeys("{RIGHT}");
                     break;
-                case WiiController.Button.MINUS:
+                case Button.MINUS:
                     WinAPI.ManagedSendKeys("^-");
                     break;
-                case WiiController.Button.PLUS:
+                case Button.PLUS:
                     WinAPI.ManagedSendKeys("^{+}");
                     break;
-                case WiiController.Button.ONE:
+                case Button.ONE:
                     WinAPI.ManagedSendKeys("1");
                     break;
-                case WiiController.Button.TWO:
+                case Button.TWO:
                     WinAPI.ManagedSendKeys("2");
                     break;
             }
         }
 
-        void controller_ButtonUp(object sender, WiiController.Button e)
+        void controller_ButtonUp(object sender, Button e)
         {
             SendWiiKey(e, 1);
         }
 
-        void controller_ButtonDown(object sender, WiiController.Button e)
+        void controller_ButtonDown(object sender, Button e)
         {
             SendWiiKey(e, 0);
         }
 
-        void SendWiiKey(WiiController.Button e,int state)
+        void SendWiiKey(Button e,int state)
         {
             switch (e)
             {
-                case WiiController.Button.A:
+                case Button.A:
                     WinAPI.MouseClick("left",state);
                     break;
-                case WiiController.Button.B:
+                case Button.B:
                     WinAPI.MouseClick("right", state);
                     break;
-                case WiiController.Button.HOME:
+                case Button.HOME:
                     WinAPI.MouseClick("middle", state);
                     break;
             }
