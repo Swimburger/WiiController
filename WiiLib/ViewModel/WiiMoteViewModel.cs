@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Input;
 
 namespace WiiLib.ViewModel
 {
@@ -22,9 +23,14 @@ namespace WiiLib.ViewModel
             return new WiiMoteViewModel(0x57E, 0x330);
         }
 
-        public WiiMoteViewModel(): base(0x57E, 0x306)
+        public WiiMoteViewModel(): this(0x57E, 0x306)
         {
+            this.InfraredChanged += VM_InfraredChanged;
+        }
 
+        private void VM_InfraredChanged(object sender, List<System.Windows.Point> e)
+        {
+            //throw new NotImplementedException();
         }
         public WiiMoteViewModel(int vendorId, int productId): base(vendorId,productId)
         {
@@ -33,11 +39,18 @@ namespace WiiLib.ViewModel
 
         private void InitializeLeds()
         {
-            Leds = new ObservableCollection<bool>();
+            Leds = new List<Led>();
             for (int i = 0; i < 4; i++)
             {
-                Leds.Add(false);
+                
+                Leds.Add(new Led());
             }
+            for (int i = 0; i < 4; i++)
+            {
+
+                TurnOffLed(i);
+            }
+            
             
         }
 
@@ -64,13 +77,13 @@ namespace WiiLib.ViewModel
             }
         }
 
-        public ObservableCollection<bool> Leds { get; set; }
+        public new List<Led> Leds { get; set; }
 
         protected override void OnLedChanged(bool[] leds)
         {
             for (int i = 0; i < leds.Length; i++)
             {
-                Leds[i] = leds[i];
+                Leds[i].IsOn = leds[i];
             }
             base.OnLedChanged(leds);
         }
@@ -156,6 +169,17 @@ namespace WiiLib.ViewModel
 
         #endregion
 
+        public void ToggleLed(Led led)
+        {
+            int index = Leds.IndexOf(led);
+            if (led.IsOn)
+                TurnOnLed(index);
+            else
+                TurnOffLed(index);
+        }
+
+
+
         #region OnPropChanged
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -171,5 +195,35 @@ namespace WiiLib.ViewModel
         #endregion
 
 
+
+        
     }
+
+    public class Led:INotifyPropertyChanged
+    {
+        private bool _isOn;
+
+        public bool IsOn
+        {
+            get { return _isOn; }
+            set { _isOn = value;
+            OnPropertyChanged("IsOn");
+            }
+        }
+        #region OnPropChanged
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        public void OnPropertyChanged(string name)
+        {
+            if (PropertyChanged != null)
+            {
+                PropertyChanged(this, new PropertyChangedEventArgs(name));
+            }
+        }
+
+        #endregion
+    }
+
+    
 }
