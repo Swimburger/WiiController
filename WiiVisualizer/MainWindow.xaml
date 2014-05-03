@@ -1,9 +1,10 @@
 ﻿<Window
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="clr-namespace:WiiLib.ViewModel;assembly=WiiLib"
+        xmlns:vm="clr-namespace:WiiVisualizer.ViewModel"
+    xmlns:chartingToolkit="clr-namespace:System.Windows.Controls.DataVisualization.Charting;assembly=System.Windows.Controls.DataVisualization.Toolkit"
         xmlns:local="clr-namespace:WiiVisualizer" x:Class="WiiVisualizer.MainWindow"
-        Title="MainWindow" MinHeight="720" MinWidth="200" Height="720">
+        Title="MainWindow" MinHeight="720" MinWidth="200" Height="720" Width="1332">
     <Window.Resources>
         <Style TargetType="{x:Type CheckBox}">
             <Setter Property="IsEnabled" Value="False" />
@@ -16,9 +17,10 @@
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="250"/>
-            <ColumnDefinition/>
+            <ColumnDefinition Width="577*"/>
+            <ColumnDefinition Width="499*"/>
         </Grid.ColumnDefinitions>
-        <Border HorizontalAlignment="Left" Margin="50 0 0 20" Height="550" Width="175" CornerRadius="20" BorderBrush="Gray" BorderThickness="1">
+        <Border HorizontalAlignment="Left" Margin="50,60,0,0" Height="550" Width="175" CornerRadius="20" BorderBrush="Gray" BorderThickness="1" VerticalAlignment="Top">
             <Border.Background>
                 <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
                     <GradientStop Color="White" Offset="0"/>
@@ -26,6 +28,60 @@
                 </LinearGradientBrush>
             </Border.Background>
             <Grid >
+                <ProgressBar Opacity="0.3" Orientation="Vertical" Minimum="0" Maximum="1"  Value="{Binding BatteryLevel, Mode=OneWay}" >
+                    <ProgressBar.Template>
+                        <ControlTemplate TargetType="{x:Type ProgressBar}">
+                            <Grid x:Name="TemplateRoot">
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup x:Name="CommonStates">
+                                        <VisualState x:Name="Determinate"/>
+                                        <VisualState x:Name="Indeterminate">
+                                            <Storyboard RepeatBehavior="Forever">
+                                                <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(ScaleTransform.ScaleX)" Storyboard.TargetName="Animation">
+                                                    <EasingDoubleKeyFrame KeyTime="0" Value="0.25"/>
+                                                    <EasingDoubleKeyFrame KeyTime="0:0:1" Value="0.25"/>
+                                                    <EasingDoubleKeyFrame KeyTime="0:0:2" Value="0.25"/>
+                                                </DoubleAnimationUsingKeyFrames>
+                                                <PointAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.RenderTransformOrigin)" Storyboard.TargetName="Animation">
+                                                    <EasingPointKeyFrame KeyTime="0" Value="-0.5,0.5"/>
+                                                    <EasingPointKeyFrame KeyTime="0:0:1" Value="0.5,0.5"/>
+                                                    <EasingPointKeyFrame KeyTime="0:0:2" Value="1.5,0.5"/>
+                                                </PointAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                                <Border CornerRadius="20"  BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}"/>
+                                <Rectangle x:Name="PART_Track"/>
+                                <Grid x:Name="PART_Indicator" ClipToBounds="True" HorizontalAlignment="Left">
+                                    <Rectangle RadiusX="20" RadiusY="20" x:Name="Indicator" Fill="{TemplateBinding Foreground}"/>
+                                    <Rectangle RadiusX="20" RadiusY="20" x:Name="Animation" Fill="{TemplateBinding Foreground}" RenderTransformOrigin="0.5,0.5">
+                                        <Rectangle.RenderTransform>
+                                            <TransformGroup>
+                                                <ScaleTransform/>
+                                                <SkewTransform/>
+                                                <RotateTransform/>
+                                                <TranslateTransform/>
+                                            </TransformGroup>
+                                        </Rectangle.RenderTransform>
+                                    </Rectangle>
+                                </Grid>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="Orientation" Value="Vertical">
+                                    <Setter Property="LayoutTransform" TargetName="TemplateRoot">
+                                        <Setter.Value>
+                                            <RotateTransform Angle="-90"/>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Trigger>
+                                <Trigger Property="IsIndeterminate" Value="True">
+                                    <Setter Property="Visibility" TargetName="Indicator" Value="Collapsed"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </ProgressBar.Template>
+                </ProgressBar>
 
                 <Grid Margin="0 50 0 0" VerticalAlignment="Top" x:Name="DPadGrid" Width="100" Height="100">
                     <CheckBox IsChecked="{Binding IsLeftDown}" HorizontalAlignment="Left" Margin="10,0,0,0" VerticalAlignment="Center" />
@@ -67,8 +123,14 @@
 
             </Grid>
         </Border>
-        <Image x:Name="irImg" Grid.Column="1" Height="250" Margin="10.4,360,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="250"/>
+        <Image x:Name="irImg" Grid.Column="1" Margin="10.4,60,16.4,80.4"/>
+        <chartingToolkit:Chart Grid.Column="2" x:Name="chart" BorderThickness="0" >
 
+            <chartingToolkit:LineSeries Title="X" ItemsSource="{Binding Points}" IndependentValuePath="Time" DependentValuePath="X"/>
+            <chartingToolkit:LineSeries Title="Y" ItemsSource="{Binding Points}" IndependentValuePath="Time" DependentValuePath="Y"/>
+            <chartingToolkit:LineSeries Title="Z" ItemsSource="{Binding Points}" IndependentValuePath="Time" DependentValuePath="Z"/>
+        </chartingToolkit:Chart>
+        <Button Click="Button_Click" Content="Rumble" HorizontalAlignment="Left" Margin="50,641,0,0" VerticalAlignment="Top" Width="175" Height="33"/>
     </Grid>
 
 </Window>

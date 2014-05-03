@@ -20,7 +20,8 @@ namespace WiiLib
         private Dictionary<Button, bool> _buttonsState=new Dictionary<Button,bool>();
         private Dictionary<Button, byte> _buttonsMasksFirstByte=new Dictionary<Button,byte>();
         private Dictionary<Button, byte> _buttonsMasksSecondByte= new Dictionary<Button,byte>();
-        Dispatcher _dispatcher=Dispatcher.CurrentDispatcher;
+        private Dispatcher _dispatcher=Dispatcher.CurrentDispatcher;
+        private bool _isStatusRequestedOnce;
 
         private bool _isBatteryNearlyEmpty;
         #endregion
@@ -60,7 +61,17 @@ namespace WiiLib
             LastAcceleration = new Acceleration(0, 0, 0);
             //_dispatcher = Dispatcher.FromThread(Thread.CurrentThread);
             InitializeWii(vendorId, productId);
+            InitializePoints();
             StartReadingReports();
+        }
+
+        private void InitializePoints()
+        {
+            InfraredPoints = new List<Point>();
+            InfraredPoints.Add(new Point(-1, -1));
+            InfraredPoints.Add(new Point(-1, -1));
+            InfraredPoints.Add(new Point(-1, -1));
+            InfraredPoints.Add(new Point(-1, -1));
         }
 
         public static WiiController GetOldWiiRemote()
@@ -145,6 +156,13 @@ namespace WiiLib
                     Console.WriteLine("StatusReport @ID:" + report.ReportID);
                 }
                 ProcessStatusReport(report.Data);
+               
+            }
+            if (!_isStatusRequestedOnce)
+            {
+                InitializeIR();
+                SetDataReportingMode(0x37);
+                _isStatusRequestedOnce = true;
             }
         }        
 
@@ -576,10 +594,11 @@ namespace WiiLib
         private void StartReadingReports()
         {
             InitializeButtonsState();
+            SetDataReportingMode(0x30);
             Device.ReadReport(OnReadReport);
-            InitializeIR();
             RequestStatus();
-            SetDataReportingMode(0x37);
+            //InitializeIR();
+            //SetDataReportingMode(0x37);
             
         }
 
@@ -613,11 +632,7 @@ namespace WiiLib
 
         private void InitializeIR()
         {
-            InfraredPoints = new List<Point>();
-            InfraredPoints.Add(new Point(-1,-1));
-            InfraredPoints.Add(new Point(-1, -1));
-            InfraredPoints.Add(new Point(-1, -1));
-            InfraredPoints.Add(new Point(-1, -1));
+            
 
             HIDReport report = CreateReport();
             report.ReportID = 0x13;
@@ -631,9 +646,9 @@ namespace WiiLib
 
             WriteData(0xB00030, new byte[] { 0x8 });
 
-            WriteData(0xB00000, new byte[] { 0x02, 0, 0, 0x71, 0x01, 0, 0x90, 0, 0x41 });
+            WriteData(0xB00000, new byte[] { 0x02, 0, 0, 0x71, 0x01, 0, 0xaa, 0, 0x64 });
 
-            WriteData(0xB0001A, new byte[] { 0x40, 0 });
+            WriteData(0xB0001A, new byte[] { 0x63, 0x03 });
 
             WriteData(0xB00033, new byte[] { 0x01});
 

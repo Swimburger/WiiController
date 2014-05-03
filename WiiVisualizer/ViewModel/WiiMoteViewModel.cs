@@ -6,8 +6,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using WiiLib;
 
-namespace WiiLib.ViewModel
+namespace WiiVisualizer.ViewModel
 {
     public class WiiMoteViewModel:WiiController,INotifyPropertyChanged
     {
@@ -25,17 +26,13 @@ namespace WiiLib.ViewModel
 
         public WiiMoteViewModel(): this(0x57E, 0x306)
         {
-            this.InfraredChanged += VM_InfraredChanged;
-        }
-
-        private void VM_InfraredChanged(object sender, List<System.Windows.Point> e)
-        {
-            //throw new NotImplementedException();
         }
         public WiiMoteViewModel(int vendorId, int productId): base(vendorId,productId)
         {
             InitializeLeds();
         }
+
+        
 
         private void InitializeLeds()
         {
@@ -166,6 +163,18 @@ namespace WiiLib.ViewModel
         public bool IsOneDown { get; set; }
         public bool IsTwoDown { get; set; }
 
+        private ObservableCollection<DataPoint> _points= new ObservableCollection<DataPoint>();
+
+        public ObservableCollection<DataPoint> Points
+        {
+            get { return _points; }
+            set
+            {
+                _points = value;
+                OnPropertyChanged("Points");
+            }
+        }
+        
 
         #endregion
 
@@ -197,6 +206,79 @@ namespace WiiLib.ViewModel
 
 
         
+    }
+
+    public class DataPoint:INotifyPropertyChanged
+    {
+        public DataPoint(DateTime time, Acceleration accel)
+        {
+            Time = time;
+            Acceleration = accel;
+        }
+        private DateTime _time;
+
+        public DateTime Time
+        {
+            get { return _time; }
+            set { _time = value;
+                OnPropertyChanged("Time");
+            }
+        }
+
+        private Acceleration _accel;
+
+        public Acceleration Acceleration
+        {
+            get { return _accel; }
+            set { _accel = value;
+            OnPropertyChanged("Acceleration");
+            }
+        }
+
+        public float X
+        {
+            get { return Acceleration.X; }
+            set {Acceleration.X = value;
+            OnPropertyChanged("X");
+            }
+        }
+
+        public float Y
+        {
+            get { return Acceleration.Y; }
+            set
+            {
+                Acceleration.Y= value;
+                OnPropertyChanged("Y");
+            }
+        }
+
+        public float Z
+        {
+            get { return Acceleration.Z; }
+            set
+            {
+                Acceleration.Z = value;
+                OnPropertyChanged("Z");
+            }
+        }
+        
+
+
+
+        #region OnPropChanged
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        public void OnPropertyChanged(string name)
+        {
+            if (PropertyChanged != null)
+            {
+                PropertyChanged(this, new PropertyChangedEventArgs(name));
+            }
+        }
+
+        #endregion
     }
 
     public class Led:INotifyPropertyChanged

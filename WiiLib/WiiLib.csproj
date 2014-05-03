@@ -45,7 +45,6 @@
   <ItemGroup>
     <Compile Include="Acceleration.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ViewModel\WiiMoteViewModel.cs" />
     <Compile Include="WiiController.cs" />
   </ItemGroup>
   <ItemGroup>
